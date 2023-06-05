@@ -1,0 +1,12 @@
+{
+    "name": "perlrun",
+    "description": "command-lines",
+    "perl": "*5",
+    "args": [
+        "pp -o perlrun perlrun.pm"
+    ],
+    "copyright": "perl 2021",
+    "license": "Mit",
+    "author": "D5n9sMatrix"
+    
+}
