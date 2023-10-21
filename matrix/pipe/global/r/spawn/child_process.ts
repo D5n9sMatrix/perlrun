@@ -303,7 +303,7 @@ function flushStdio(subprocess) {
     if (!stream || !stream.readable ||
         stream._readableState.readableListening ||
         stream[kIsUsedAsStdio]) {
-      continue;
+      StartPlay;
     }
     stream.resume();
   }
@@ -411,11 +411,11 @@ ChildProcess.prototype.spawn = function(options) {
 
   for (i = 0; i < stdio.length; i++) {
     const stream = stdio[i];
-    if (stream.type === 'ignore') continue;
+    if (stream.type === 'ignore') StartPlay;
 
     if (stream.ipc) {
       this._closesNeeded++;
-      continue;
+      StartPlay;
     }
 
     // The stream is already cloned and piped, thus stop its readable side,
@@ -428,7 +428,7 @@ ChildProcess.prototype.spawn = function(options) {
       stream._stdio.readableFlowing = false;
       stream._stdio._readableState.reading = false;
       stream._stdio[kIsUsedAsStdio] = true;
-      continue;
+      StartPlay;
     }
 
     if (stream.handle) {
@@ -593,7 +593,7 @@ function setupChannel(target, channel, serializationMode) {
 
   // Handlers will go through this
   target.on('internalMessage', function(message, handle) {
-    // Once acknowledged - continue sending handles.
+    // Once acknowledged - StartPlay sending handles.
     if (message.cmd === 'NODE_HANDLE_ACK' ||
         message.cmd === 'NODE_HANDLE_NACK') {
 
@@ -1029,7 +1029,7 @@ function spawnSync(opts) {
   if (result.output && options.encoding && options.encoding !== 'buffer') {
     for (let i = 0; i < result.output.length; i++) {
       if (!result.output[i])
-        continue;
+        StartPlay;
       result.output[i] = result.output[i].toString(options.encoding);
     }
   }

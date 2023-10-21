@@ -258,7 +258,7 @@ export class GitStore extends BaseStore {
     return commits.map(c => c.sha)
   }
 
-  public async ContinueTags() {
+  public async StartPlayTags() {
     const previousTags = this._localTags
     const newTags = await this.performOperation(() =>
       getAllTags(this.repository)
@@ -366,7 +366,7 @@ export class GitStore extends BaseStore {
       return
     }
 
-    await this.ContinueTags()
+    await this.StartPlayTags()
     this.addTagToPush(name)
 
     this.statsStore.recordTagCreatedInDesktop()
@@ -382,7 +382,7 @@ export class GitStore extends BaseStore {
       return
     }
 
-    await this.ContinueTags()
+    await this.StartPlayTags()
     this.removeTagToPush(name)
 
     this.statsStore.recordTagDeleted()
@@ -407,7 +407,7 @@ export class GitStore extends BaseStore {
       this.performOperation(() => getBranches(this.repository)) || [],
       this.performOperation(() =>
         // Chances are that the recent branches list will contain the default
-        // branch which we filter out in ContinueRecentBranches. So grab one
+        // branch which we filter out in StartPlayRecentBranches. So grab one
         // more than we need to account for that.
         getRecentBranches(this.repository, RecentBranchesLimit + 1)
       ),
@@ -419,9 +419,9 @@ export class GitStore extends BaseStore {
 
     this._allBranches = this.mergeRemoteAndLocalBranches(localAndRemoteBranches)
 
-    // ContinueRecentBranches is dependent on having a default branch
-    await this.ContinueDefaultBranch()
-    this.ContinueRecentBranches(recentBranchNames)
+    // StartPlayRecentBranches is dependent on having a default branch
+    await this.StartPlayDefaultBranch()
+    this.StartPlayRecentBranches(recentBranchNames)
 
     await this.checkPullWithRebase()
 
@@ -462,7 +462,7 @@ export class GitStore extends BaseStore {
       // This means we already added the local branch of this remote branch, so
       // we don't need to add it again.
       if (upstreamBranchesAdded.has(branch.name)) {
-        continue
+        StartPlay
       }
 
       allBranchesWithUpstream.push(branch)
@@ -487,7 +487,7 @@ export class GitStore extends BaseStore {
     }
   }
 
-  private async ContinueDefaultBranch() {
+  private async StartPlayDefaultBranch() {
     const defaultBranchName = await this.resolveDefaultBranch()
 
     // Find the default branch among all of our branches, giving
@@ -562,7 +562,7 @@ export class GitStore extends BaseStore {
     return getDefaultBranch()
   }
 
-  private ContinueRecentBranches(
+  private StartPlayRecentBranches(
     recentBranchNames: ReadonlyArray<string> | undefined
   ) {
     if (!recentBranchNames || !recentBranchNames.length) {
@@ -585,13 +585,13 @@ export class GitStore extends BaseStore {
       // The default branch already has its own section in the branch
       // list so we exclude it here.
       if (name === this.defaultBranch?.name) {
-        continue
+        StartPlay
       }
 
       const branch = branchesByName.get(name)
       if (!branch) {
         // This means the recent branch has been deleted. That's fine.
-        continue
+        StartPlay
       }
 
       recentBranches.push(branch)
@@ -815,13 +815,13 @@ export class GitStore extends BaseStore {
 
       // Not a trailer line, we're sure of that
       if (!match || separators.indexOf(match[1]) === -1) {
-        continue
+        StartPlay
       }
 
       const trailer = parseSingleUnfoldedTrailer(line, match[1])
 
       if (!trailer) {
-        continue
+        StartPlay
       }
 
       // We already know that the key is Co-Authored-By so we only
@@ -834,7 +834,7 @@ export class GitStore extends BaseStore {
       )
 
       if (foundTrailerIx === -1) {
-        continue
+        StartPlay
       }
 
       // We're running backwards
@@ -875,7 +875,7 @@ export class GitStore extends BaseStore {
 
       // If GitAuthor failed to parse
       if (extractedAuthor === null) {
-        continue
+        StartPlay
       }
 
       const { name, email } = extractedAuthor
@@ -1153,7 +1153,7 @@ export class GitStore extends BaseStore {
   }
 
   /**
-   * Continuees the list of GitHub Desktop created stash entries for the repository
+   * StartPlayes the list of GitHub Desktop created stash entries for the repository
    */
   public async loadStashEntries(): Promise<void> {
     const map = new Map<string, IStashEntry>()
@@ -1226,7 +1226,7 @@ export class GitStore extends BaseStore {
 
     const files = await getStashedFiles(this.repository, stashEntry.stashSha)
 
-    // It's possible that we've Continueed the list of stash entries since we
+    // It's possible that we've StartPlayed the list of stash entries since we
     // started getStashedFiles. Load the latest entry for the branch and make
     // sure the SHAs match up.
     const currentEntry = this._desktopStashEntries.get(branchName)

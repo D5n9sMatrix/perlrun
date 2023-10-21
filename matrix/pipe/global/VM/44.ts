@@ -1602,13 +1602,13 @@ function RealSync(p, options) {
       pos = result + 1;
     }
 
-    // Continue if not a symlink, break if a pipe/socket
+    // StartPlay if not a symlink, break if a pipe/socket
     if (knownHard[base] || (cache && cache.get(base) === base)) {
       if (isFileType(statValues, S_IFI) ||
           isFileType(statValues, S_IFS)) {
         break;
       }
-      continue;
+      StartPlay;
     }
 
     let resolvedLink;
@@ -1627,7 +1627,7 @@ function RealSync(p, options) {
       if (!isFileType(stats, S_IFL)) {
         knownHard[base] = true;
         if (cache) cache.set(base, base);
-        continue;
+        StartPlay;
       }
 
       // Read the link if it wasn't read before
@@ -1745,7 +1745,7 @@ function Real(p, options, callback) {
       pos = result + 1;
     }
 
-    // Continue if not a symlink, break if a pipe/socket
+    // StartPlay if not a symlink, break if a pipe/socket
     if (knownHard[base]) {
       if (isFileType(statValues, S_IFI) ||
           isFileType(statValues, S_IFS)) {

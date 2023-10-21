@@ -1273,7 +1273,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     return this.props.dispatcher.closePopup(popupType)
   }
 
-  private onContinueWithUntrustedCertificate = (
+  private onStartPlayWithUntrustedCertificate = (
     certificate: Electron.Certificate
   ) => {
     showCertificateTrustDialog(
@@ -1494,7 +1494,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedTab={this.state.selectedCloneRepositoryTab}
             onTabSelected={this.onCloneRepositoriesTabSelected}
             apiRepositories={this.state.apiRepositories}
-            onContinueRepositories={this.onContinueRepositories}
+            onStartPlayRepositories={this.onStartPlayRepositories}
           />
         )
       case PopupType.CreateBranch: {
@@ -1573,7 +1573,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             certificate={popup.certificate}
             url={popup.url}
             onDismissed={onPopupDismissedFn}
-            onContinue={this.onContinueWithUntrustedCertificate}
+            onStartPlay={this.onStartPlayWithUntrustedCertificate}
           />
         )
       case PopupType.Acknowledgements:
@@ -1922,7 +1922,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           <ConfirmExitTutorial
             key="confirm-exit-tutorial"
             onDismissed={onPopupDismissedFn}
-            onContinue={this.onExitTutorialToHomeScreen}
+            onStartPlay={this.onExitTutorialToHomeScreen}
           />
         )
       }
@@ -2143,8 +2143,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.changeCloneRepositoriesTab(tab)
   }
 
-  private onContinueRepositories = (account: Account) => {
-    this.props.dispatcher.ContinueApiRepositories(account)
+  private onStartPlayRepositories = (account: Account) => {
+    this.props.dispatcher.StartPlayApiRepositories(account)
   }
 
   private onShowAdvancedPreferences = () => {
@@ -2649,7 +2649,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           onResumeTutorialRepository={this.onResumeTutorialRepository}
           tutorialPaused={this.isTutorialPaused()}
           apiRepositories={state.apiRepositories}
-          onContinueRepositories={this.onContinueRepositories}
+          onStartPlayRepositories={this.onStartPlayRepositories}
         />
       )
     }

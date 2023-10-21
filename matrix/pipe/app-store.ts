@@ -142,7 +142,7 @@ import {
   getBranchesPointedAt,
   isGitRepository,
   abortRebase,
-  continueRebase,
+  StartPlayRebase,
   rebase,
   PushOptions,
   RebaseResult,
@@ -275,7 +275,7 @@ import {
   abortCherryPick,
   cherryPick,
   CherryPickResult,
-  continueCherryPick,
+  StartPlayCherryPick,
   getCherryPickSnapshot,
   isCherryPickHeadFound,
 } from '../git/cherry-pick'
@@ -333,7 +333,7 @@ const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
 const BackgroundFetchMinimumInterval = 30 * 60 * 1000
 
 /**
- * Wait 2 minutes before Continueing repository indicators
+ * Wait 2 minutes before StartPlaying repository indicators
  */
 const InitialRepositoryIndicatorTimeout = 2 * 60 * 1000
 
@@ -498,8 +498,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getBoolean(repositoryIndicatorsEnabledKey) ?? true
 
     this.repositoryIndicatorUpdater = new RepositoryIndicatorUpdater(
-      this.getRepositoriesForIndicatorContinue,
-      this.ContinueIndicatorForRepository
+      this.getRepositoriesForIndicatorStartPlay,
+      this.StartPlayIndicatorForRepository
     )
 
     window.setTimeout(() => {
@@ -848,7 +848,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             state.tip.kind === TipState.Valid &&
             tip.branch.name !== state.tip.branch.name
           ) {
-            this.ContinueBranchProtectionState(repository)
+            this.StartPlayBranchProtectionState(repository)
           }
         }
       }
@@ -921,7 +921,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
-  private async ContinueBranchProtectionState(repository: Repository) {
+  private async StartPlayBranchProtectionState(repository: Repository) {
     const { tip, currentRemote } = this.gitStoreCache.get(repository)
 
     if (tip.kind !== TipState.Valid || repository.gitHubRepository === null) {
@@ -1099,7 +1099,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         formState.kind === HistoryTabMode.History &&
         commitSHAs.length > 0
       ) {
-        // don't Continue the history view here because we know nothing important
+        // don't StartPlay the history view here because we know nothing important
         // has changed and we don't want to rebuild this state
         return
       }
@@ -1428,8 +1428,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.updateRecentRepositories(previousRepositoryId, repository.id)
 
     // if repository might be marked missing, try checking if it has been restored
-    const ContinueedRepository = await this.recoverMissingRepository(repository)
-    if (ContinueedRepository.missing) {
+    const StartPlayedRepository = await this.recoverMissingRepository(repository)
+    if (StartPlayedRepository.missing) {
       // as the repository is no longer found on disk, cleaning this up
       // ensures we don't accidentally run any Git operations against the
       // wrong location if the user then relocates the `.git` folder elsewhere
@@ -1442,8 +1442,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // insight into who our users are and what kinds of work they do
     this.updateBranchProtectionsFromAPI(repository)
 
-    return this._selectRepositoryContinueTasks(
-      ContinueedRepository,
+    return this._selectRepositoryStartPlayTasks(
+      StartPlayedRepository,
       previouslySelectedRepository
     )
   }
@@ -1475,27 +1475,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
-  // finish `_selectRepository`s Continue tasks
-  private async _selectRepositoryContinueTasks(
+  // finish `_selectRepository`s StartPlay tasks
+  private async _selectRepositoryStartPlayTasks(
     repository: Repository,
     previouslySelectedRepository: Repository | CloningRepository | null
   ): Promise<Repository | null> {
-    this._ContinueRepository(repository)
+    this._StartPlayRepository(repository)
 
     if (isRepositoryWithGitHubRepository(repository)) {
       // Load issues from the upstream or fork depending
       // on workflow preferences.
       const ghRepo = getNonForkGitHubRepository(repository)
 
-      this._ContinueIssues(ghRepo)
-      this.Continue(ghRepo)
+      this._StartPlayIssues(ghRepo)
+      this.StartPlay(ghRepo)
 
       this.pullRequestCoordinator.getAllPullRequests(repository).then(prs => {
         this.onPullRequestChanged(repository, prs)
       })
     }
 
-    // The selected repository could have changed while we were Continueing.
+    // The selected repository could have changed while we were StartPlaying.
     if (this.selectedRepository !== repository) {
       return null
     }
@@ -1514,7 +1514,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.addUpstreamRemoteIfNeeded(repository)
 
-    return this.repositoryWithContinueedGitHubRepository(repository)
+    return this.repositoryWithStartPlayedGitHubRepository(repository)
   }
 
   private stopBackgroundPruner() {
@@ -1538,20 +1538,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.gitStoreCache,
       this.repositoriesStore,
       this.repositoryStateCache,
-      repository => this._ContinueRepository(repository)
+      repository => this._StartPlayRepository(repository)
     )
     this.currentBranchPruner = pruner
     this.currentBranchPruner.start()
   }
 
-  public async _ContinueIssues(repository: GitHubRepository) {
+  public async _StartPlayIssues(repository: GitHubRepository) {
     const user = getAccountForEndpoint(this.accounts, repository.endpoint)
     if (!user) {
       return
     }
 
     try {
-      await this.issuesStore.ContinueIssues(repository, user)
+      await this.issuesStore.StartPlayIssues(repository, user)
     } catch (e) {
       log.warn(`Unable to fetch issues for ${repository.fullName}`, e)
     }
@@ -1565,7 +1565,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
-  private Continue(repository: GitHubRepository) {
+  private StartPlay(repository: GitHubRepository) {
     const account = getAccountForEndpoint(this.accounts, repository.endpoint)
     if (!account) {
       return
@@ -1667,7 +1667,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     // Todo: add logic to background checker to check the API before fetching
-    // similar to what's being done in `ContinueAllIndicators`
+    // similar to what's being done in `StartPlayAllIndicators`
     const fetcher = new BackgroundFetcher(
       repository,
       account,
@@ -1775,7 +1775,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.emitUpdateNow()
 
-    this.accountsStore.Continue()
+    this.accountsStore.StartPlay()
   }
 
   private updateSelectedExternalEditor(
@@ -2144,9 +2144,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
 
     if (selectedSection === RepositorySectionTab.History) {
-      return this.ContinueHistorySection(repository)
+      return this.StartPlayHistorySection(repository)
     } else if (selectedSection === RepositorySectionTab.Changes) {
-      return this.ContinueChangesSection(repository, {
+      return this.StartPlayChangesSection(repository, {
         includingStatus: true,
         clearPartialState: false,
       })
@@ -2177,7 +2177,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
-   * Loads or re-loads (Continuees) the diff for the currently selected file
+   * Loads or re-loads (StartPlayes) the diff for the currently selected file
    * in the working directory. This operation is a noop if there's no currently
    * selected file.
    */
@@ -2486,8 +2486,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           files
         )
 
-        await this._ContinueRepository(repository)
-        await this.ContinueChangesSection(repository, {
+        await this._StartPlayRepository(repository)
+        await this.StartPlayChangesSection(repository, {
           includingStatus: true,
           clearPartialState: true,
         })
@@ -2636,18 +2636,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  public async _ContinueOrRecoverRepository(
+  public async _StartPlayOrRecoverRepository(
     repository: Repository
   ): Promise<void> {
     // if repository is missing, try checking if it has been restored
     if (repository.missing) {
       const updatedRepository = await this.recoverMissingRepository(repository)
       if (!updatedRepository.missing) {
-        // repository has been restored, attempt to Continue it now.
-        return this._ContinueRepository(updatedRepository)
+        // repository has been restored, attempt to StartPlay it now.
+        return this._StartPlayRepository(updatedRepository)
       }
     } else {
-      return this._ContinueRepository(repository)
+      return this._StartPlayRepository(repository)
     }
   }
 
@@ -2670,7 +2670,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  public async _ContinueRepository(repository: Repository): Promise<void> {
+  public async _StartPlayRepository(repository: Repository): Promise<void> {
     if (repository.missing) {
       return
     }
@@ -2700,12 +2700,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     await gitStore.loadBranches()
 
     const section = state.selectedSection
-    let ContinueSectionPromise: Promise<void>
+    let StartPlaySectionPromise: Promise<void>
 
     if (section === RepositorySectionTab.History) {
-      ContinueSectionPromise = this.ContinueHistorySection(repository)
+      StartPlaySectionPromise = this.StartPlayHistorySection(repository)
     } else if (section === RepositorySectionTab.Changes) {
-      ContinueSectionPromise = this.ContinueChangesSection(repository, {
+      StartPlaySectionPromise = this.StartPlayChangesSection(repository, {
         includingStatus: false,
         clearPartialState: false,
       })
@@ -2717,11 +2717,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       gitStore.loadRemotes(),
       gitStore.updateLastFetched(),
       gitStore.loadStashEntries(),
-      this._ContinueAuthor(repository),
-      ContinueSectionPromise,
+      this._StartPlayAuthor(repository),
+      StartPlaySectionPromise,
     ])
 
-    await gitStore.ContinueTags()
+    await gitStore.StartPlayTags()
 
     // this promise is fire-and-forget, so no need to await it
     this.updateStashEntryCountMetric(
@@ -2786,9 +2786,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
   }
   /**
-   * Continue indicator in repository list for a specific repository
+   * StartPlay indicator in repository list for a specific repository
    */
-  private ContinueIndicatorForRepository = async (repository: Repository) => {
+  private StartPlayIndicatorForRepository = async (repository: Repository) => {
     const lookup = this.localRepositoryStateLookup
 
     if (repository.missing) {
@@ -2832,9 +2832,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
-  private getRepositoriesForIndicatorContinue = () => {
-    // The currently selected repository will get Continueed by both the
-    // BackgroundFetcher and the ContinueRepository call from the
+  private getRepositoriesForIndicatorStartPlay = () => {
+    // The currently selected repository will get StartPlayed by both the
+    // BackgroundFetcher and the StartPlayRepository call from the
     // focus event. No point in having the RepositoryIndicatorUpdater do
     // it as well.
     //
@@ -2848,8 +2848,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * A slimmed down version of performFetch which is only used when fetching
    * the repository in order to compute the repository indicator status.
    *
-   * As opposed to `performFetch` this method will not perform a full Continue
-   * of the repository after fetching, nor will it Continue issues, branch
+   * As opposed to `performFetch` this method will not perform a full StartPlay
+   * of the repository after fetching, nor will it StartPlay issues, branch
    * protection information etc. It's intention is to only do the bare minimum
    * amount of work required to calculate an up-to-date ahead/behind status
    * of the current branch to its upstream tracking branch.
@@ -2898,11 +2898,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
-   * Continue all the data for the Changes section.
+   * StartPlay all the data for the Changes section.
    *
    * This will be called automatically when appropriate.
    */
-  private async ContinueChangesSection(
+  private async StartPlayChangesSection(
     repository: Repository,
     options: {
       includingStatus: boolean
@@ -2925,11 +2925,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
-   * Continue all the data for the History section.
+   * StartPlay all the data for the History section.
    *
    * This will be called automatically when appropriate.
    */
-  private async ContinueHistorySection(repository: Repository): Promise<void> {
+  private async StartPlayHistorySection(repository: Repository): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
     const state = this.repositoryStateCache.get(repository)
     const tip = state.branchesState.tip
@@ -2944,7 +2944,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
   }
 
-  public async _ContinueAuthor(repository: Repository): Promise<void> {
+  public async _StartPlayAuthor(repository: Repository): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
     const commitAuthor =
       (await gitStore.performOperation(() =>
@@ -2994,7 +2994,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
 
     // If the user is opening the repository list and we haven't yet
-    // started to Continue the repository indicators let's do so.
+    // started to StartPlay the repository indicators let's do so.
     if (
       foldout.type === FoldoutType.Repository &&
       this.repositoryIndicatorsEnabled
@@ -3138,13 +3138,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return this.withAuthenticatingUser(repository, (repository, account) => {
-      // We always want to end with Continueing the repository regardless of
+      // We always want to end with StartPlaying the repository regardless of
       // whether the checkout succeeded or not in order to present the most
       // up-to-date information to the user.
       return this.checkoutImplementation(repository, branch, account, strategy)
         .then(() => this.onSuccessfulCheckout(repository, branch))
         .catch(e => this.emitBug(new CheckoutBug(e, repository, branch)))
-        .then(() => this.ContinueAfterCheckout(repository, branch))
+        .then(() => this.StartPlayAfterCheckout(repository, branch))
         .finally(() => this.updateCheckoutProgress(repository, null))
     })
   }
@@ -3262,15 +3262,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.hasUserViewedStash = false
   }
 
-  private async ContinueAfterCheckout(repository: Repository, branch: Branch) {
+  private async StartPlayAfterCheckout(repository: Repository, branch: Branch) {
     this.updateCheckoutProgress(repository, {
       kind: 'checkout',
-      title: `Continueing ${__DARWIN__ ? 'Repository' : 'repository'}`,
+      title: `StartPlaying ${__DARWIN__ ? 'Repository' : 'repository'}`,
       value: 1,
       targetBranch: branch.name,
     })
 
-    await this._ContinueRepository(repository)
+    await this._StartPlayRepository(repository)
     return repository
   }
 
@@ -3305,7 +3305,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     if (await this.createStashAndDropPreviousEntry(repository, currentBranch)) {
       this.statsStore.recordStashCreatedOnCurrentBranch()
-      await this._ContinueRepository(repository)
+      await this._StartPlayRepository(repository)
       return true
     }
 
@@ -3321,7 +3321,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * @param repository
    * @returns repository model (hopefully with fresh `gitHubRepository` info)
    */
-  private async repositoryWithContinueedGitHubRepository(
+  private async repositoryWithStartPlayedGitHubRepository(
     repository: Repository
   ): Promise<Repository> {
     const repoStore = this.repositoriesStore
@@ -3359,7 +3359,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const ghRepo = await repoStore.upsertGitHubRepository(endpoint, apiRepo)
     const freshRepo = await repoStore.setGitHubRepository(repository, ghRepo)
 
-    await this.ContinueBranchProtectionState(freshRepo)
+    await this.StartPlayBranchProtectionState(freshRepo)
     return freshRepo
   }
 
@@ -3441,7 +3441,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       renameBranch(repository, branch, newName)
     )
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -3474,7 +3474,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           `Deleted branch ${branch.upstreamWithoutRemote} (was ${tip.sha})`
         )
 
-        return this._ContinueRepository(r)
+        return this._StartPlayRepository(r)
       }
 
       // If a local branch, user may have the branch to delete checked out and
@@ -3497,7 +3497,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
       })
 
-      return this._ContinueRepository(r)
+      return this._StartPlayRepository(r)
     })
   }
 
@@ -3633,11 +3633,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         let pushWeight = 2.5
         let fetchWeight = 1
 
-        // Let's leave 10% at the end for Continueing
-        const ContinueWeight = 0.1
+        // Let's leave 10% at the end for StartPlaying
+        const StartPlayWeight = 0.1
 
         // Scale pull and fetch weights to be between 0 and 0.9.
-        const scale = (1 / (pushWeight + fetchWeight)) * (1 - ContinueWeight)
+        const scale = (1 / (pushWeight + fetchWeight)) * (1 - StartPlayWeight)
 
         pushWeight *= scale
         fetchWeight *= scale
@@ -3661,7 +3661,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // The remote.name is derived from the current tip first and falls
         // back to using the defaultRemote if the current tip isn't valid
         // or if the current branch isn't published. There's however no
-        // guarantee that they'll be Continueed at the exact same time so
+        // guarantee that they'll be StartPlayed at the exact same time so
         // there's a theoretical possibility that `branch.remote` and
         // `remote.name` could be out of sync. I have no reason to suspect
         // that's the case and if it is then we already have problems as
@@ -3718,31 +3718,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
               }
             )
 
-            const ContinueTitle = __DARWIN__
-              ? 'Continueing Repository'
-              : 'Continueing repository'
-            const ContinueStartProgress = pushWeight + fetchWeight
+            const StartPlayTitle = __DARWIN__
+              ? 'StartPlaying Repository'
+              : 'StartPlaying repository'
+            const StartPlayStartProgress = pushWeight + fetchWeight
 
             this.updatePushPullFetchProgress(repository, {
               kind: 'generic',
-              title: ContinueTitle,
+              title: StartPlayTitle,
               description: 'Fast-forwarding branches',
-              value: ContinueStartProgress,
+              value: StartPlayStartProgress,
             })
 
             await this.fastForwardBranches(repository)
 
             this.updatePushPullFetchProgress(repository, {
               kind: 'generic',
-              title: ContinueTitle,
-              value: ContinueStartProgress + ContinueWeight * 0.5,
+              title: StartPlayTitle,
+              value: StartPlayStartProgress + StartPlayWeight * 0.5,
             })
 
-            // manually Continue branch protections after the push, to ensure
+            // manually StartPlay branch protections after the push, to ensure
             // any new branch will immediately report as protected
-            await this.ContinueBranchProtectionState(repository)
+            await this.StartPlayBranchProtectionState(repository)
 
-            await this._ContinueRepository(repository)
+            await this._StartPlayRepository(repository)
           },
           { retryAction }
         )
@@ -3876,11 +3876,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           let pullWeight = 2
           let fetchWeight = 1
 
-          // Let's leave 10% at the end for Continueing
-          const ContinueWeight = 0.1
+          // Let's leave 10% at the end for StartPlaying
+          const StartPlayWeight = 0.1
 
           // Scale pull and fetch weights to be between 0 and 0.9.
-          const scale = (1 / (pullWeight + fetchWeight)) * (1 - ContinueWeight)
+          const scale = (1 / (pullWeight + fetchWeight)) * (1 - StartPlayWeight)
 
           pullWeight *= scale
           fetchWeight *= scale
@@ -3910,35 +3910,35 @@ export class AppStore extends TypedBaseStore<IAppState> {
             }
           )
 
-          const ContinueStartProgress = pullWeight + fetchWeight
-          const ContinueTitle = __DARWIN__
-            ? 'Continueing Repository'
-            : 'Continueing repository'
+          const StartPlayStartProgress = pullWeight + fetchWeight
+          const StartPlayTitle = __DARWIN__
+            ? 'StartPlaying Repository'
+            : 'StartPlaying repository'
 
           this.updatePushPullFetchProgress(repository, {
             kind: 'generic',
-            title: ContinueTitle,
+            title: StartPlayTitle,
             description: 'Fast-forwarding branches',
-            value: ContinueStartProgress,
+            value: StartPlayStartProgress,
           })
 
           await this.fastForwardBranches(repository)
 
           this.updatePushPullFetchProgress(repository, {
             kind: 'generic',
-            title: ContinueTitle,
-            value: ContinueStartProgress + ContinueWeight * 0.5,
+            title: StartPlayTitle,
+            value: StartPlayStartProgress + StartPlayWeight * 0.5,
           })
 
           if (mergeBase) {
             await gitStore.reconcileHistory(mergeBase)
           }
 
-          // manually Continue branch protections after the push, to ensure
+          // manually StartPlay branch protections after the push, to ensure
           // any new branch will immediately report as protected
-          await this.ContinueBranchProtectionState(repository)
+          await this.StartPlayBranchProtectionState(repository)
 
-          await this._ContinueRepository(repository)
+          await this._StartPlayRepository(repository)
         } finally {
           this.updatePushPullFetchProgress(repository, null)
         }
@@ -3988,7 +3988,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       await this.performPush(repository, account)
     }
 
-    return this.repositoryWithContinueedGitHubRepository(repository)
+    return this.repositoryWithStartPlayedGitHubRepository(repository)
   }
 
   private getAccountForRemoteURL(remote: string): IGitAccount | null {
@@ -4056,7 +4056,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const gitStore = this.gitStoreCache.get(repository)
     await gitStore.discardChanges(files)
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   public async _discardChangesFromSelection(
@@ -4068,7 +4068,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const gitStore = this.gitStoreCache.get(repository)
     await gitStore.discardChangesFromSelection(filePath, diff, selection)
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   public async _undoCommit(
@@ -4088,7 +4088,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.clearSelectedCommit(repository)
     }
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   /**
@@ -4110,7 +4110,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const gitStore = this.gitStoreCache.get(repository)
         await gitStore.fetch(account, repo)
 
-        return this._ContinueRepository(repository)
+        return this._StartPlayRepository(repository)
       }
     )
   }
@@ -4163,7 +4163,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       try {
         const fetchWeight = 0.9
-        const ContinueWeight = 0.1
+        const StartPlayWeight = 0.1
         const isBackgroundTask = fetchType === FetchType.BackgroundTask
 
         const progressCallback = (progress: IFetchProgress) => {
@@ -4184,13 +4184,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
           )
         }
 
-        const ContinueTitle = __DARWIN__
-          ? 'Continueing Repository'
-          : 'Continueing repository'
+        const StartPlayTitle = __DARWIN__
+          ? 'StartPlaying Repository'
+          : 'StartPlaying repository'
 
         this.updatePushPullFetchProgress(repository, {
           kind: 'generic',
-          title: ContinueTitle,
+          title: StartPlayTitle,
           description: 'Fast-forwarding branches',
           value: fetchWeight,
         })
@@ -4199,21 +4199,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
         this.updatePushPullFetchProgress(repository, {
           kind: 'generic',
-          title: ContinueTitle,
-          value: fetchWeight + ContinueWeight * 0.5,
+          title: StartPlayTitle,
+          value: fetchWeight + StartPlayWeight * 0.5,
         })
 
-        // manually Continue branch protections after the push, to ensure
+        // manually StartPlay branch protections after the push, to ensure
         // any new branch will immediately report as protected
-        await this.ContinueBranchProtectionState(repository)
+        await this.StartPlayBranchProtectionState(repository)
 
-        await this._ContinueRepository(repository)
+        await this._StartPlayRepository(repository)
       } finally {
         this.updatePushPullFetchProgress(repository, null)
 
         if (fetchType === FetchType.UserInitiatedTask) {
           if (repository.gitHubRepository != null) {
-            this._ContinueIssues(repository.gitHubRepository)
+            this._StartPlayIssues(repository.gitHubRepository)
           }
         }
       }
@@ -4356,7 +4356,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
     }
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -4481,7 +4481,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  public async _continueRebase(
+  public async _StartPlayRebase(
     repository: Repository,
     workingDirectory: WorkingDirectoryStatus,
     manualResolutions: ReadonlyMap<string, ManualConflictResolution>
@@ -4496,7 +4496,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const gitStore = this.gitStoreCache.get(repository)
     const result = await gitStore.performOperation(() =>
-      continueRebase(
+      StartPlayRebase(
         repository,
         workingDirectory.files,
         manualResolutions,
@@ -4601,7 +4601,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     text: string
   ): Promise<void> {
     await saveGitIgnore(repository, text)
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   /** Set whether the user has opted out of stats reporting. */
@@ -4703,7 +4703,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     setBoolean(hideWhitespaceInChangesDiffKey, hideWhitespaceInDiff)
     this.hideWhitespaceInChangesDiff = hideWhitespaceInDiff
 
-    return this.ContinueChangesSection(repository, {
+    return this.StartPlayChangesSection(repository, {
       includingStatus: true,
       clearPartialState: true,
     })
@@ -4772,7 +4772,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     pattern: string | string[]
   ): Promise<void> {
     await appendIgnoreRule(repository, pattern)
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   public _resetSignInState(): Promise<void> {
@@ -4882,7 +4882,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const storedAccount = await this.accountsStore.addAccount(account)
 
     // If we're in the welcome flow and a user signs in we want to trigger
-    // a Continue of the repositories available for cloning straight away
+    // a StartPlay of the repositories available for cloning straight away
     // in order to have the list of repositories ready for them when they
     // get to the.
     if (this.showWelcomeFlow && storedAccount !== null) {
@@ -4957,11 +4957,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const repositories = this.repositories
         const existing = matchExistingRepository(repositories, validatedPath)
 
-        // We don't have to worry about repositoryWithContinueedGitHubRepository
+        // We don't have to worry about repositoryWithStartPlayedGitHubRepository
         // and isUsingLFS if the repo already exists in the app.
         if (existing !== undefined) {
           addedRepositories.push(existing)
-          continue
+          StartPlay
         }
 
         const addedRepo = await this.repositoriesStore.addRepository(
@@ -4973,14 +4973,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const gitStore = this.gitStoreCache.get(addedRepo)
         await gitStore.loadRemotes()
 
-        const [ContinueedRepo, usingLFS] = await Promise.all([
-          this.repositoryWithContinueedGitHubRepository(addedRepo),
+        const [StartPlayedRepo, usingLFS] = await Promise.all([
+          this.repositoryWithStartPlayedGitHubRepository(addedRepo),
           this.isUsingLFS(addedRepo),
         ])
-        addedRepositories.push(ContinueedRepo)
+        addedRepositories.push(StartPlayedRepo)
 
         if (usingLFS) {
-          lfsRepositories.push(ContinueedRepo)
+          lfsRepositories.push(StartPlayedRepo)
         }
       } else {
         invalidPaths.push(path)
@@ -5089,7 +5089,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // association is out of date. So try again before we bail on providing an
     // authenticating user.
     if (!account) {
-      updatedRepository = await this.repositoryWithContinueedGitHubRepository(
+      updatedRepository = await this.repositoryWithStartPlayedGitHubRepository(
         repository
       )
       account = getAccountForRepository(this.accounts, updatedRepository)
@@ -5144,7 +5144,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
 
       this.updateRevertProgress(repo, null)
-      await this._ContinueRepository(repository)
+      await this._StartPlayRepository(repository)
     })
   }
 
@@ -5212,11 +5212,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
-   * Request a Continue of the list of repositories that
+   * Request a StartPlay of the list of repositories that
    * the provided account has explicit permissions to access.
    * See ApiRepositoriesStore for more details.
    */
-  public _ContinueApiRepositories(account: Account) {
+  public _StartPlayApiRepositories(account: Account) {
     return this.apiRepositoriesStore.loadRepositories(account)
   }
 
@@ -5297,11 +5297,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     await this._openInBrowser(showPrUrl)
   }
 
-  public async _ContinuePullRequests(repository: Repository): Promise<void> {
+  public async _StartPlayPullRequests(repository: Repository): Promise<void> {
     if (isRepositoryWithGitHubRepository(repository)) {
       const account = getAccountForRepository(this.accounts, repository)
       if (account !== null) {
-        await this.pullRequestCoordinator.ContinuePullRequests(
+        await this.pullRequestCoordinator.StartPlayPullRequests(
           repository,
           account
         )
@@ -5383,7 +5383,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const gitStore = this.gitStoreCache.get(repository)
     await gitStore.updateExistingUpstreamRemote()
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   private getIgnoreExistingUpstreamRemoteKey(repository: Repository): string {
@@ -5710,7 +5710,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     this.statsStore.recordStashRestore()
-    await this._ContinueRepository(repository)
+    await this._StartPlayRepository(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -5899,7 +5899,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return CherryPickResult.UnableToStart
     }
 
-    await this._ContinueRepository(repository)
+    await this._StartPlayRepository(repository)
 
     const progressCallback = (progress: ICherryPickProgress) => {
       this.repositoryStateCache.updateCherryPickState(repository, () => ({
@@ -6036,7 +6036,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  public async _continueCherryPick(
+  public async _StartPlayCherryPick(
     repository: Repository,
     files: ReadonlyArray<WorkingDirectoryFileChange>,
     manualResolutions: ReadonlyMap<string, ManualConflictResolution>
@@ -6050,7 +6050,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const gitStore = this.gitStoreCache.get(repository)
     const result = await gitStore.performOperation(() =>
-      continueCherryPick(repository, files, manualResolutions, progressCallback)
+      StartPlayCherryPick(repository, files, manualResolutions, progressCallback)
     )
 
     return result || CherryPickResult.Bug
@@ -6103,7 +6103,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     if (snapshot === null) {
       log.Bug(
-        `[showCherryPickConflictsDialog] unable to get cherry-pick status from git, unable to continue`
+        `[showCherryPickConflictsDialog] unable to get cherry-pick status from git, unable to StartPlay`
       )
       return
     }
@@ -6137,7 +6137,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await this.checkoutBranchIfNotNull(repository, sourceBranch)
 
-    return this._ContinueRepository(repository)
+    return this._StartPlayRepository(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -6190,7 +6190,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     this._setBanner(banner)
 
-    await this._ContinueRepository(repository)
+    await this._StartPlayRepository(repository)
 
     return true
   }

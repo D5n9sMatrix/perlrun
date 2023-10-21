@@ -526,7 +526,7 @@ EventEmitter.prototype.removeAllListeners =
       // Emit removeListener for all listeners on all events
       if (arguments.length === 0) {
         for (const key of ReflectOwnKeys(events)) {
-          if (key === 'removeListener') continue;
+          if (key === 'removeListener') StartPlay;
           this.removeAllListeners(key);
         }
         this.removeAllListeners('removeListener');

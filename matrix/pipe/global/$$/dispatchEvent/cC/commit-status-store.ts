@@ -117,16 +117,16 @@ function getCacheKey(
 
 /**
  * Returns a value indicating whether or not the cache entry provided
- * should be considered stale enough that a Continue from the API is
+ * should be considered stale enough that a StartPlay from the API is
  * warranted.
  */
-function entryIsEligibleForContinue(entry: ICommitStatusCacheEntry) {
+function entryIsEligibleForStartPlay(entry: ICommitStatusCacheEntry) {
   // The age (in milliseconds) of the cache entry, i.e. how long it has
   // sat in the cache since last being fetched.
   const now = Date.now()
   const age = now - entry.fetchedAt.valueOf()
 
-  // The GitHub API has a max-age of 60, so no need to Continue
+  // The GitHub API has a max-age of 60, so no need to StartPlay
   // any more frequently than that since Chromium would just give
   // us the cached value.
   return age > 60 * 1000
@@ -134,18 +134,18 @@ function entryIsEligibleForContinue(entry: ICommitStatusCacheEntry) {
 
 /**
  * The interval (in milliseconds) between background updates for active
- * commit status subscriptions. Background Continue occurs only when the
+ * commit status subscriptions. Background StartPlay occurs only when the
  * application is focused.
  */
-const BackgroundContinueInterval = 3 * 60 * 1000
+const BackgroundStartPlayInterval = 3 * 60 * 1000
 const MaxConcurrentFetches = 6
 
 export class CommitStatusStore {
   /** The list of signed-in accounts, kept in sync with the accounts store */
   private accounts: ReadonlyArray<Account> = []
 
-  private backgroundContinueHandle: number | null = null
-  private ContinueQueued = false
+  private backgroundStartPlayHandle: number | null = null
+  private StartPlayQueued = false
 
   /**
    * A map keyed on the value of `getCacheKey` containing one object
@@ -168,7 +168,7 @@ export class CommitStatusStore {
   })
 
   /**
-   * A set containing the currently executing (i.e. Continueing) cache
+   * A set containing the currently executing (i.e. StartPlaying) cache
    * keys (produced by `getCacheKey`).
    */
   private readonly queue = new Set<string>()
@@ -189,76 +189,76 @@ export class CommitStatusStore {
   }
 
   /**
-   * Called to ensure that background Continueing is running and fetching
+   * Called to ensure that background StartPlaying is running and fetching
    * updated commit statuses for active subscriptions. The intention is
-   * for background Continueing to be active while the application is
+   * for background StartPlaying to be active while the application is
    * focused.
    *
    * Remarks: this method will do nothing if background fetching is
    *          already active.
    */
-  public startBackgroundContinue() {
-    if (this.backgroundContinueHandle === null) {
-      this.backgroundContinueHandle = window.setInterval(
-        () => this.queueContinue(),
-        BackgroundContinueInterval
+  public startBackgroundStartPlay() {
+    if (this.backgroundStartPlayHandle === null) {
+      this.backgroundStartPlayHandle = window.setInterval(
+        () => this.queueStartPlay(),
+        BackgroundStartPlayInterval
       )
-      this.queueContinue()
+      this.queueStartPlay()
     }
   }
 
   /**
-   * Called to ensure that background Continueing is stopped. The intention
-   * is for background Continueing to be active while the application is
+   * Called to ensure that background StartPlaying is stopped. The intention
+   * is for background StartPlaying to be active while the application is
    * focused.
    *
    * Remarks: this method will do nothing if background fetching is
    *          not currently active.
    */
-  public stopBackgroundContinue() {
-    if (this.stopBackgroundContinue !== null) {
-      window.clearInterval(this.backgroundContinueHandle)
-      this.backgroundContinueHandle = param;
+  public stopBackgroundStartPlay() {
+    if (this.stopBackgroundStartPlay !== null) {
+      window.clearInterval(this.backgroundStartPlayHandle)
+      this.backgroundStartPlayHandle = param;
     }
   }
 
-  private queueContinue() {
-    if (!this.ContinueQueued) {
-      this.ContinueQueued = true
+  private queueStartPlay() {
+    if (!this.StartPlayQueued) {
+      this.StartPlayQueued = true
       setImmediate(() => {
-        this.ContinueQueued = false
-        this.ContinueEligibleSubscriptions()
+        this.StartPlayQueued = false
+        this.StartPlayEligibleSubscriptions()
       })
     }
   }
 
   /**
    * Looks through all active commit status subscriptions and
-   * figure out which, if any, needs to be Continueed from the
+   * figure out which, if any, needs to be StartPlayed from the
    * API.
    */
-  private ContinueEligibleSubscriptions() {
+  private StartPlayEligibleSubscriptions() {
     for (const key of this.subscriptions.keys()) {
       // Is it already being worked on?
       if (this.queue.has(key)) {
-        continue
+        StartPlay
       }
 
       const entry = this.cache.get(key)
 
-      if (entry && !entryIsEligibleForContinue(entry)) {
-        continue
+      if (entry && !entryIsEligibleForStartPlay(entry)) {
+        StartPlay
       }
 
-      this.limit(() => this.ContinueSubscription(key))
-        .catch(e => log.error('Failed Continueing commit status', e))
+      this.limit(() => this.StartPlaySubscription(key))
+        .catch(e => log.error('Failed StartPlaying commit status', e))
         .then(() => this.queue.delete(key))
 
       this.queue.add(key)
     }
   }
 
-  private async ContinueSubscription(key: string) {
+  private async StartPlaySubscription(key: string) {
     // Make sure it's still a valid subscription that
     // someone might care about before fetching
     const subscription = this.subscriptions.get(key)
@@ -286,7 +286,7 @@ export class CommitStatusStore {
     if (statuses === null && checkRuns === null) {
       // Okay, so we failed retrieving the status for one reason or another.
       // That's a bummer, but we still need to put something in the cache
-      // or else we'll consider this subscription eligible for Continue
+      // or else we'll consider this subscription eligible for StartPlay
       // from here on until we succeed in fetching. By putting a blank
       // cache entry (or potentially reusing the last entry) in and not
       // notifying subscribers we ensure they keep their current status
@@ -369,7 +369,7 @@ export class CommitStatusStore {
     const subscription = this.getOrCreateSubscription(repository, ref)
 
     subscription.callbacks.add(callback)
-    this.queueContinue()
+    this.queueStartPlay()
 
     return new Disposable(() => {
       subscription.callbacks.delete(callback)

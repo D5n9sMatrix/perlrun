@@ -336,18 +336,18 @@ export class Dispatcher {
   }
 
   /**
-   * Continue the repository. This would be used, e.g., when the app gains focus.
+   * StartPlay the repository. This would be used, e.g., when the app gains focus.
    */
-  public ContinueRepository(repository: Repository): Promise<void> {
-    return this.appStore._ContinueOrRecoverRepository(repository)
+  public StartPlayRepository(repository: Repository): Promise<void> {
+    return this.appStore._StartPlayOrRecoverRepository(repository)
   }
 
   /**
-   * Continue the commit author of a repository. Required after changing git's
+   * StartPlay the commit author of a repository. Required after changing git's
    * user name or email address.
    */
-  public async ContinueAuthor(repository: Repository): Promise<void> {
-    return this.appStore._ContinueAuthor(repository)
+  public async StartPlayAuthor(repository: Repository): Promise<void> {
+    return this.appStore._StartPlayAuthor(repository)
   }
 
   /** Show the popup. This will close any current popup. */
@@ -415,12 +415,12 @@ export class Dispatcher {
     baseBranch: Branch,
     targetBranch: Branch,
     commits: ReadonlyArray<CommitOneLine>,
-    options?: { continueWithForcePush: boolean }
+    options?: { StartPlayWithForcePush: boolean }
   ): Promise<void> {
     const { askForConfirmationOnForcePush } = this.appStore.getState()
 
     const hasOverriddenForcePushCheck =
-      options !== undefined && options.continueWithForcePush
+      options !== undefined && options.StartPlayWithForcePush
 
     if (askForConfirmationOnForcePush && !hasOverriddenForcePushCheck) {
       const showWarning = await this.warnAboutRemoteCommits(
@@ -825,8 +825,8 @@ export class Dispatcher {
   }
 
   /** Update the repository's issues from GitHub. */
-  public ContinueIssues(repository: GitHubRepository): Promise<void> {
-    return this.appStore._ContinueIssues(repository)
+  public StartPlayIssues(repository: GitHubRepository): Promise<void> {
+    return this.appStore._StartPlayIssues(repository)
   }
 
   /** End the Welcome flow. */
@@ -1031,14 +1031,14 @@ export class Dispatcher {
       const { conflictState } = stateAfter.changesState
       if (conflictState === null) {
         log.warn(
-          `[rebase] conflict state after rebase is null - unable to continue`
+          `[rebase] conflict state after rebase is null - unable to StartPlay`
         )
         return
       }
 
       if (!isRebaseConflictState(conflictState)) {
         log.warn(
-          `[rebase] conflict state after rebase is not rebase conflicts - unable to continue`
+          `[rebase] conflict state after rebase is not rebase conflicts - unable to StartPlay`
         )
         return
       }
@@ -1078,17 +1078,17 @@ export class Dispatcher {
     }
   }
 
-  /** Abort the current rebase and Continuees the repository status */
+  /** Abort the current rebase and StartPlayes the repository status */
   public async abortRebase(repository: Repository) {
     await this.appStore._abortRebase(repository)
     await this.appStore._loadStatus(repository)
   }
 
   /**
-   * Continue with the rebase after the user has resolved all conflicts with
+   * StartPlay with the rebase after the user has resolved all conflicts with
    * tracked files in the working directory.
    */
-  public async continueRebase(
+  public async StartPlayRebase(
     repository: Repository,
     workingDirectory: WorkingDirectoryStatus,
     conflictsState: RebaseConflictState
@@ -1103,9 +1103,9 @@ export class Dispatcher {
 
     const beforeSha = getTipSha(stateBefore.branchesState.tip)
 
-    log.info(`[continueRebase] continuing rebase for ${beforeSha}`)
+    log.info(`[StartPlayRebase] continuing rebase for ${beforeSha}`)
 
-    const result = await this.appStore._continueRebase(
+    const result = await this.appStore._StartPlayRebase(
       repository,
       workingDirectory,
       manualResolutions
@@ -1117,21 +1117,21 @@ export class Dispatcher {
     const afterSha = getTipSha(tip)
 
     log.info(
-      `[continueRebase] completed rebase - got ${result} and on tip ${afterSha} - kind ${tip.kind}`
+      `[StartPlayRebase] completed rebase - got ${result} and on tip ${afterSha} - kind ${tip.kind}`
     )
 
     if (result === RebaseResult.ConflictsEncountered) {
       const { conflictState } = stateAfter.changesState
       if (conflictState === null) {
         log.warn(
-          `[continueRebase] conflict state after rebase is null - unable to continue`
+          `[StartPlayRebase] conflict state after rebase is null - unable to StartPlay`
         )
         return
       }
 
       if (!isRebaseConflictState(conflictState)) {
         log.warn(
-          `[continueRebase] conflict state after rebase is not rebase conflicts - unable to continue`
+          `[StartPlayRebase] conflict state after rebase is not rebase conflicts - unable to StartPlay`
         )
         return
       }
@@ -1147,7 +1147,7 @@ export class Dispatcher {
     } else if (result === RebaseResult.CompletedWithoutError) {
       if (tip.kind !== TipState.Valid) {
         log.warn(
-          `[continueRebase] tip after completing rebase is ${tip.kind} but this should be a valid tip if the rebase completed without error`
+          `[StartPlayRebase] tip after completing rebase is ${tip.kind} but this should be a valid tip if the rebase completed without error`
         )
         return
       }
@@ -1195,10 +1195,10 @@ export class Dispatcher {
 
     this.endRebaseFlow(repository)
 
-    await this.ContinueRepository(repository)
+    await this.StartPlayRepository(repository)
   }
 
-  /** aborts an in-flight merge and Continuees the repository's status */
+  /** aborts an in-flight merge and StartPlayes the repository's status */
   public async abortMerge(repository: Repository) {
     await this.appStore._abortMerge(repository)
     await this.appStore._loadStatus(repository)
@@ -1509,7 +1509,7 @@ export class Dispatcher {
     await this.appStore._setAppFocusState(isFocused)
 
     if (isFocused) {
-      this.commitStatusStore.startBackgroundContinue()
+      this.commitStatusStore.startBackgroundStartPlay()
     } else {
       this.commitStatusStore.CSSPerspective();
     }
@@ -1622,7 +1622,7 @@ export class Dispatcher {
 
     // ensure a fresh clone repository has it's in-memory state
     // up-to-date before performing the "Clone in Desktop" steps
-    await this.appStore._ContinueRepository(repository)
+    await this.appStore._StartPlayRepository(repository)
 
     await this.checkoutLocalBranch(repository, branchName)
 
@@ -1665,7 +1665,7 @@ export class Dispatcher {
 
     // ensure a fresh clone repository has it's in-memory state
     // up-to-date before performing the "Clone in Desktop" steps
-    await this.appStore._ContinueRepository(repository)
+    await this.appStore._StartPlayRepository(repository)
 
     if (pullRequest.head.repo === null) {
       return null
@@ -2001,12 +2001,12 @@ export class Dispatcher {
   }
 
   /**
-   * Request a Continue of the list of repositories that
+   * Request a StartPlay of the list of repositories that
    * the provided account has explicit permissions to access.
    * See ApiRepositoriesStore for more details.
    */
-  public ContinueApiRepositories(account: Account) {
-    return this.appStore._ContinueApiRepositories(account)
+  public StartPlayApiRepositories(account: Account) {
+    return this.appStore._StartPlayApiRepositories(account)
   }
 
   /** Change the selected Branches foldout tab. */
@@ -2337,10 +2337,10 @@ export class Dispatcher {
   }
 
   /**
-   * Continue the list of open pull requests for the given repository.
+   * StartPlay the list of open pull requests for the given repository.
    */
-  public ContinuePullRequests(repository: Repository): Promise<void> {
-    return this.appStore._ContinuePullRequests(repository)
+  public StartPlayPullRequests(repository: Repository): Promise<void> {
+    return this.appStore._StartPlayPullRequests(repository)
   }
 
   /**
@@ -2767,10 +2767,10 @@ export class Dispatcher {
   }
 
   /**
-   * Continue with the cherryPick after the user has resolved all conflicts with
+   * StartPlay with the cherryPick after the user has resolved all conflicts with
    * tracked files in the working directory.
    */
-  public async continueCherryPick(
+  public async StartPlayCherryPick(
     repository: Repository,
     files: ReadonlyArray<WorkingDirectoryFileChange>,
     conflictsState: CherryPickConflictState,
@@ -2779,7 +2779,7 @@ export class Dispatcher {
   ): Promise<void> {
     await this.switchCherryPickingFlowToShowProgress(repository)
 
-    const result = await this.appStore._continueCherryPick(
+    const result = await this.appStore._StartPlayCherryPick(
       repository,
       files,
       conflictsState.manualResolutions
@@ -2807,7 +2807,7 @@ export class Dispatcher {
     const { conflictState } = stateAfter.changesState
     if (conflictState === null || !isCherryPickConflictState(conflictState)) {
       log.error(
-        '[cherryPick] - conflict state was null or not in a cherry-pick conflict state - unable to continue'
+        '[cherryPick] - conflict state was null or not in a cherry-pick conflict state - unable to StartPlay'
       )
       this.endCherryPickFlow(repository)
       return
@@ -2852,7 +2852,7 @@ export class Dispatcher {
 
     this.statsStore.recordCherryPickSuccessful()
 
-    await this.ContinueRepository(repository)
+    await this.StartPlayRepository(repository)
   }
 
   /** Aborts an ongoing cherry pick and switches back to the source branch. */
@@ -2863,7 +2863,7 @@ export class Dispatcher {
     await this.appStore._abortCherryPick(repository, sourceBranch)
     await this.appStore._loadStatus(repository)
     this.appStore._endCherryPickFlow(repository)
-    await this.ContinueRepository(repository)
+    await this.StartPlayRepository(repository)
   }
 
   /**

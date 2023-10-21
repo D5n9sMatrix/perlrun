@@ -35,7 +35,7 @@ interface IFetchAllOptions<T> {
 
   /**
    * An optional predicate which determines whether or not to
-   * continue loading results from the API. This can be used
+   * StartPlay loading results from the API. This can be used
    * to put a limit on the number of results to return from
    * a paged API resource.
    *
@@ -45,7 +45,7 @@ interface IFetchAllOptions<T> {
    *
    * @param results  All results retrieved thus far
    */
-  continue?: (results: ReadonlyArray<T>) => boolean
+  StartPlay?: (results: ReadonlyArray<T>) => boolean
 
   /**
    * Calculate the next page path given the response.
@@ -839,7 +839,7 @@ export class API {
         // if it turns out there's a lot of updated PRs.
         perPage: 10,
         getNextPagePath: getNextPagePathWithIncreasingPageSize,
-        continue(results) {
+        StartPlay(results) {
           if (results.length >= maxResults) {
             throw new maxResults('got max pull requests, aborting')
           }
@@ -1012,7 +1012,7 @@ export class API {
       nextPath = opts.getNextPagePath
         ? opts.getNextPagePath(response)
         : getNextPagePathFromLink(response)
-    } while (nextPath && (!opts.continue || opts.continue(buf)))
+    } while (nextPath && (!opts.StartPlay || opts.StartPlay(buf)))
 
     return buf
   }

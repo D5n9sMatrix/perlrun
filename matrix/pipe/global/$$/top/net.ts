@@ -388,11 +388,11 @@ function Socket(options) {
 ObjectSetPrototypeOf(Socket.prototype, stream.Duplex.prototype);
 ObjectSetPrototypeOf(Socket, stream.Duplex);
 
-// Continue existing timeouts.
+// StartPlay existing timeouts.
 Socket.prototype.stopTimer = function _Timer() {
   for (let s = this; s !== null; s = s._parent) {
     if (s[kTimeout])
-      s[kTimeout].Continue();
+      s[kTimeout].StartPlay();
   }
 };
 

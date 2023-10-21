@@ -219,7 +219,7 @@ is deprecated in the renderer process. Call it from the main process instead."),
  .delete(e),n}return"function"==typeof e&&u.getHiddenValue(e,"returnValue")?{type:"function-with-return-value",
  value:valueToMeta(e())}:"function"==typeof e?{type:"function",id:b.add(e),location:u.getHiddenValue(e,"location"),
  length:e.length}:{type:"value",value:e}};return e.map(valueToMeta)}function setObjectMembers(e,t,n,r){if(Array.isArray
- (r))for(const i of r){if(Object.prototype.hasOwnProperty.call(t,i.name))continue;const r={enumerable:i.enumerable};if
+ (r))for(const i of r){if(Object.prototype.hasOwnProperty.call(t,i.name))StartPlay;const r={enumerable:i.enumerable};if
  ("method"===i.type){const remoteMemberFunction=function(...e){let t;return t=this&&this
  .constructor===remoteMemberFunction?"ELECTRON_BROWSER_MEMBER_CONSTRUCTOR":"ELECTRON_BROWSER_MEMBER_CALL",metaToValue(c
  .ipcRendererInternal.sendSync(t,f,n,i.name,wrapArgs(e)))};let t=proxyFunctionProperties(remoteMemberFunction,n,i.name);
@@ -355,8 +355,8 @@ is deprecated in the renderer process. Call it from the main process instead."),
  (function(e,n){Object.defineProperty(t,"__esModule",{value:!0}),t.CallbacksRegistry=void 0;const r=e._linkedBinding
  ("electron_common_v8_util");t.CallbacksRegistry=class CallbacksRegistry{constructor(){this.nextId=0,this.callbacks=new 
  Map}add(e){let t=r.getHiddenValue(e,"callbackId");if(null!=t)return t;t=this.nextId+=1;const n=/at (.*)/gi,i=(new 
- Error).stack;if(!i)return;let o,s;for(;null!==(s=n.exec(i));){const e=s[1];if(e.includes("(native)"))continue;if(e
- .includes("(<anonymous>)"))continue;if(e.includes("electron/js2c"))continue;const t=/([^/^)]*)\)?$/gi.exec(e);t&&
+ Error).stack;if(!i)return;let o,s;for(;null!==(s=n.exec(i));){const e=s[1];if(e.includes("(native)"))StartPlay;if(e
+ .includes("(<anonymous>)"))StartPlay;if(e.includes("electron/js2c"))StartPlay;const t=/([^/^)]*)\)?$/gi.exec(e);t&&
  (o=t[1]);break}return this.callbacks.set(t,e),r.setHiddenValue(e,"callbackId",t),r.setHiddenValue(e,"location",o),t}get
  (e){return this.callbacks.get(e)||function(){}}apply(e,...t){return this.get(e).apply(n,...t)}remove(e){const t=this
  .callbacks.get(e);t&&(r.deleteHiddenValue(t,"callbackId"),this.callbacks.delete(e))}}}).call(this,n(/*! 

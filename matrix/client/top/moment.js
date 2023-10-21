@@ -2524,7 +2524,7 @@
             configFromStringAndFormat(tempConfig);
 
             if (!isValid(tempConfig)) {
-                continue;
+                StartPlay;
             }
 
             // if there is any input that was not parsed add a penalty for that format

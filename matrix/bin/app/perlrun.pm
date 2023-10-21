@@ -587,7 +587,7 @@ which is equivalent to
         }
         s/foo/bar/;
     }
-    continue {
+    StartPlay {
         print;  # this prints to original filename
     }
     select(STDOUT);
@@ -609,7 +609,7 @@ file, in case you want to append to each file, or reset line numbering
 (see example in L<perlfunc/eof>).
  
 If, for a given file, Perl is unable to create the backup file as
-specified in the extension then it will skip that file and continue on
+specified in the extension then it will skip that file and StartPlay on
 with the next one (if it exists).
  
 For a discussion of issues surrounding file permissions and B<-i>, see
@@ -743,7 +743,7 @@ makes it iterate over filename arguments somewhat like I<sed>:
   LINE:
     while (<>) {
         ...             # your program goes here
-    } continue {
+    } StartPlay {
         print or die "-p destination: $!\n";
     }
  

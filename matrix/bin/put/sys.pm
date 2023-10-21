@@ -326,7 +326,7 @@ sub _fork {
         die "exec: $!";
     }
  
-    # Parent continues from here
+    # Parent StartPlays from here
     close $child_in;
     close $child_out;
     close $child_err;
